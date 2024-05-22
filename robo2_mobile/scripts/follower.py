@@ -125,7 +125,7 @@ class mymobibot_follower():
     def publish(self):
 
         # set configuration
-        self.velocity.linear.x = 0.0
+        self.velocity.linear.x = 15.0
         self.velocity.angular.z = 0.0
         tmp_rate = rospy.Rate(1)
         tmp_rate.sleep()
@@ -136,7 +136,11 @@ class mymobibot_follower():
 
         while not rospy.is_shutdown():
 
-            sonar_front = self.sonar_F.range # and so on...
+            sonar_front = self.sonar_F.range
+            sonar_front_left = self.sonar_FL.range
+            sonar_front_right = self.sonar_FR.range
+            sonar_left = self.sonar_L.range
+            sonar_right = self.sonar_R.range
 
             """
             INSERT YOUR MAIN CODE HERE
@@ -149,6 +153,7 @@ class mymobibot_follower():
             rostime_now = rospy.get_rostime()
             time_now = rostime_now.to_nsec()
             dt = (time_now - time_prev)/1e9
+            # print("Time interval: ", dt)
 
             # Publish the new joint's angular positions
             self.velocity_pub.publish(self.velocity)
