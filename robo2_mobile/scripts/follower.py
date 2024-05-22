@@ -147,7 +147,7 @@ class mymobibot_follower():
             sonar_left = self.sonar_L.range
             sonar_right = self.sonar_R.range
 
-            self.imu_callback(self.imu)
+            #self.imu_callback(self.imu)
                 
             # Calculate time interval (in case is needed)
             time_prev = time_now
@@ -160,6 +160,7 @@ class mymobibot_follower():
             sin_c_angle = sonar_front_left*cos(pi/4)/sqrt(sonar_front**2+sonar_front_left**2-sqrt(2)*sonar_front*sonar_front_left)
             # print("sin: ", sin_c_angle)
             current_angle_to_wall = asin(sin_c_angle)
+            corner_between_walls = asin(sonar_front_right*cos(pi/4)/(sqrt(sonar_front**2+sonar_front_right**2-sonar_front*sonar_front_right*sqrt(2))))
             # print(self.state)
             #print("Angle to wall on the left: ", current_angle_to_wall)
             print(self.state)
@@ -173,11 +174,11 @@ class mymobibot_follower():
                     self.velocity.angular.z = 0
                     self.velocity.linear.x = pid_vel.PID_calc(0.3, dist_front, dt)
                     self.velocity.angular.z = -pid_rot.PID_calc(pi/2,current_angle_to_wall,dt)
+                    #self.velocity.angular.z = pid_rot.PID_calc(0.3, sonar_left, dt)
                     # print(d)
                     if (abs(self.velocity.linear.x) < 0.01 and abs(0.3-dist_front) < 0.01):
                         if sonar_front_right < sonar_front:     # If you are in a corner
                             self.state = "Cornering"
-                            corner_between_walls = asin(sonar_front_right*cos(pi/4)/(sqrt(sonar_front**2+sonar_right**2-sonar_front*sonar_front_right*sqrt(2))))
                             yaw_target = self.imu_yaw-(corner_between_walls+pi/2)
                         else:
                             yaw_target = self.imu_yaw -(pi/2 - corner_between_walls)
