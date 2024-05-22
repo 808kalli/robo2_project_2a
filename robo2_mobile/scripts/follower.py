@@ -16,7 +16,7 @@ from math import sin, cos, atan2, pi, sqrt
 from numpy.linalg import inv, det, norm, pinv
 import numpy as np
 import time as t
-from pid_vel import PID
+from pid import PID
 # from tf.transformations import euler_from_quaternion
 # from tf.transformations import quaternion_matrix
 # matrix = quaternion_matrix([1, 0, 0, 0])
@@ -128,6 +128,10 @@ class mymobibot_follower():
         self.velocity.angular.z = 0.0
         tmp_rate = rospy.Rate(1)
         tmp_rate.sleep()
+
+        pid_vel = PID(0.5,0.0,0.1)
+        pid_rot = PID(1,0,0)
+
         print("The system is ready to execute your algorithm...")
 
         rostime_now = rospy.get_rostime()
@@ -140,6 +144,7 @@ class mymobibot_follower():
             sonar_front_right = self.sonar_FR.range
             sonar_left = self.sonar_L.range
             sonar_right = self.sonar_R.range
+
                 
             # Calculate time interval (in case is needed)
             time_prev = time_now
@@ -147,6 +152,13 @@ class mymobibot_follower():
             time_now = rostime_now.to_nsec()
             dt = (time_now - time_prev)/1e9
             # print("Time interval: ", dt)
+            print("=====================")
+
+            if (dt!=0.0):
+                self.velocity.linear.x = pid_vel.PID_calc(0.5,abs(sonar_front*sin(self.imu_yaw)),dt)   
+                # print("d: ", abs(sonar_front*sin(self.imu_yaw)))
+                # print("velocity: ", self.velocity.linear.x)
+                print(self.imu_yaw)
 
             # Publish the new joint's angular positions
             self.velocity_pub.publish(self.velocity)
