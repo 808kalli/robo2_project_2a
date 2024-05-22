@@ -12,7 +12,7 @@ from sensor_msgs.msg import Range
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Twist
 #Math imports
-from math import sin, cos, atan2, pi, sqrt
+from math import sin, cos, atan2, pi, sqrt, asin
 from numpy.linalg import inv, det, norm, pinv
 import numpy as np
 import time as t
@@ -64,6 +64,7 @@ class mymobibot_follower():
         self.sonar_frontright_sub = rospy.Subscriber('/sensor/sonar_FR', Range, self.sonar_frontright_callback, queue_size=1)
         self.sonar_left_sub = rospy.Subscriber('/sensor/sonar_L', Range, self.sonar_left_callback, queue_size=1)
         self.sonar_right_sub = rospy.Subscriber('/sensor/sonar_R', Range, self.sonar_right_callback, queue_size=1)
+        self.state = "Forward"
 
         #Publishing rate
         self.period = 1.0/rate
@@ -153,15 +154,24 @@ class mymobibot_follower():
             time_now = rostime_now.to_nsec()
             dt = (time_now - time_prev)/1e9
             # print("Time interval: ", dt)
-            print("=====================")
+            # print("=====================")
 
-            if (dt!=0.0):
-                d = abs(sonar_front*sin(self.imu_yaw))
-                self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt)   
-                if (abs(self.velocity.linear.x) < 0.01 and abs(0.2-d) < 0.1):
-                    self.velocity.angular.z = pid_rot.PID_calc(0.2,sonar_left,dt)
-                # print("d: ", abs(sonar_front*sin(self.imu_yaw)))
-                # print("velocity: ", self.velocity.linear.x)
+            d = abs(sonar_front*sin(self.imu_yaw))
+            current_angle_to_wall = asin(sonar_front_left*cos(pi/4)*sqrt(sonar_left**2+sonar_front_left**2-sqrt(2)*sonar_left*sonar_front_left))
+
+            if (dt == 0.0):
+                pass
+            else:
+                if (self.state == "Forward"):
+                    self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt)   
+                    if (abs(self.velocity.linear.x) < 0.01 and abs(0.2-d) < 0.1):
+                        self.state = "Turning"
+
+                elif (self.state == "Turning"):
+                    self.velocity.angular.z = pid_rot.PID_calc(pi/2,current_angle_to_wall,dt)
+                    if (abs(self.velocity.angular.z < 0.01 and abs(pi/2 - current_angle_to_wall) < 0.05)):
+                        self.state = "Forward"                    # print("d: ", abs(sonar_front*sin(self.imu_yaw)))
+                    # print("velocity: ", self.velocity.linear.x)
 
             # Publish the new joint's angular positions
             self.velocity_pub.publish(self.velocity)
