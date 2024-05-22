@@ -125,7 +125,7 @@ class mymobibot_follower():
     def publish(self):
 
         # set configuration
-        self.velocity.linear.x = 15.0
+        self.velocity.linear.x = 0.0
         self.velocity.angular.z = 0.0
         tmp_rate = rospy.Rate(1)
         tmp_rate.sleep()
@@ -141,13 +141,7 @@ class mymobibot_follower():
             sonar_front_right = self.sonar_FR.range
             sonar_left = self.sonar_L.range
             sonar_right = self.sonar_R.range
-
-            """
-            INSERT YOUR MAIN CODE HERE
-            self.velocity.linear.x = ...
-            self.velocity.angular.z = ...
-            """
-
+                
             # Calculate time interval (in case is needed)
             time_prev = time_now
             rostime_now = rospy.get_rostime()
