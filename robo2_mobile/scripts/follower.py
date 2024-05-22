@@ -147,6 +147,7 @@ class mymobibot_follower():
             sonar_left = self.sonar_L.range
             sonar_right = self.sonar_R.range
 
+            self.imu_callback(self.imu)
                 
             # Calculate time interval (in case is needed)
             time_prev = time_now
@@ -156,7 +157,7 @@ class mymobibot_follower():
             # print("Time interval: ", dt)
             # print("=====================")
 
-            sin_c_angle = sonar_front_left*cos(pi/4)/sqrt(sonar_left**2+sonar_front_left**2-sqrt(2)*sonar_left*sonar_front_left)
+            sin_c_angle = sonar_front_left*cos(pi/4)/sqrt(sonar_front**2+sonar_front_left**2-sqrt(2)*sonar_front*sonar_front_left)
             # print("sin: ", sin_c_angle)
             current_angle_to_wall = asin(sin_c_angle)
             # print(self.state)
