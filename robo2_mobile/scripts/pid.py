@@ -11,7 +11,7 @@ class PID:
         self.value = 0
     
     def PID_calc(self, Target, Current, dt):
-        self.newError = Target - Current
+        self.newError = Current - Target
         self.P_factor = self.P * self.newError
         self.D_factor = (self.D * (self.newError - self.oldError))/dt
         self.I_factor += self.I_factor + (self.I * dt * self.newError)

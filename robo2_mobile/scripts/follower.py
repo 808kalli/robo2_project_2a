@@ -90,6 +90,7 @@ class mymobibot_follower():
         #quaternion = (msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w)
         #(roll, pitch, self.imu_yaw) = euler_from_quaternion(quaternion)
         (roll, pitch, self.imu_yaw) = quaternion_to_euler(msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z)
+        # print(self.imu_yaw)
 
     def sonar_front_callback(self, msg):
         # ROS callback to get the /sensor/sonar_F
@@ -129,7 +130,7 @@ class mymobibot_follower():
         tmp_rate = rospy.Rate(1)
         tmp_rate.sleep()
 
-        pid_vel = PID(0.5,0.0,0.1)
+        pid_vel = PID(2,0.0,0.0)
         pid_rot = PID(1,0,0)
 
         print("The system is ready to execute your algorithm...")
@@ -155,10 +156,12 @@ class mymobibot_follower():
             print("=====================")
 
             if (dt!=0.0):
-                self.velocity.linear.x = pid_vel.PID_calc(0.5,abs(sonar_front*sin(self.imu_yaw)),dt)   
+                d = abs(sonar_front*sin(self.imu_yaw))
+                self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt)   
+                if (abs(self.velocity.linear.x) < 0.01 and abs(0.2-d) < 0.1):
+                    self.velocity.angular.z = pid_rot.PID_calc(0.2,sonar_left,dt)
                 # print("d: ", abs(sonar_front*sin(self.imu_yaw)))
                 # print("velocity: ", self.velocity.linear.x)
-                print(self.imu_yaw)
 
             # Publish the new joint's angular positions
             self.velocity_pub.publish(self.velocity)
