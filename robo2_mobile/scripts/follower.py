@@ -65,6 +65,7 @@ class mymobibot_follower():
         self.sonar_left_sub = rospy.Subscriber('/sensor/sonar_L', Range, self.sonar_left_callback, queue_size=1)
         self.sonar_right_sub = rospy.Subscriber('/sensor/sonar_R', Range, self.sonar_right_callback, queue_size=1)
         self.state = "Forward"
+        self.initialization = True
 
         #Publishing rate
         self.period = 1.0/rate
@@ -131,8 +132,8 @@ class mymobibot_follower():
         tmp_rate = rospy.Rate(1)
         tmp_rate.sleep()
 
-        pid_vel = PID(1.0,0.0,0.5)
-        pid_rot = PID(1.0,0,0.5)
+        pid_vel = PID(2,0.0,0.0)
+        pid_rot = PID(1,0,0)
 
         print("The system is ready to execute your algorithm...")
 
@@ -143,8 +144,8 @@ class mymobibot_follower():
 
             sonar_front = self.sonar_F.range
             sonar_front_left = self.sonar_FL.range
-            sonar_front_right = self.sonar_FR.range
             sonar_left = self.sonar_L.range
+            sonar_front_right = self.sonar_FR.range
             sonar_right = self.sonar_R.range
 
             #self.imu_callback(self.imu)
@@ -157,42 +158,36 @@ class mymobibot_follower():
             # print("Time interval: ", dt)
             # print("=====================")
 
-            sin_c_angle = sonar_front_left*cos(pi/4)/sqrt(sonar_front**2+sonar_front_left**2-sqrt(2)*sonar_front*sonar_front_left)
-            # print("sin: ", sin_c_angle)
-            current_angle_to_wall = asin(sin_c_angle)
-            corner_between_walls = asin(sonar_front_right*cos(pi/4)/(sqrt(sonar_front**2+sonar_front_right**2-sonar_front*sonar_front_right*sqrt(2))))
-            # print(self.state)
-            #print("Angle to wall on the left: ", current_angle_to_wall)
-            print(self.state)
-            print(self.imu_yaw)
+            d = abs(sonar_front*sin(self.imu_yaw))
+            current_angle_to_wall = asin(sonar_front_left*cos(pi/4)*sqrt(sonar_left**2+sonar_front_left**2-sqrt(2)*sonar_left*sonar_front_left))
+
             if (dt == 0.0):
                 pass
+            elif (self.initialization == True):
+                # print(self.state)
+                if (self.state == "Forward"):
+                    self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt) 
+                    if (abs(self.velocity.linear.x) < 0.01 and abs(d - 0.2) < 0.01):
+                        self.velocity.linear.x = 0.0
+                        self.state = "Turning"
+
+                elif (self.state == "Turning"):
+                    self.velocity.angular.z = -pid_rot.PID_calc(pi/2,current_angle_to_wall_left,dt)
+                    if (abs(self.velocity.angular.z) < 0.001 and abs(pi/2 - current_angle_to_wall_left) < 0.001):
+                        self.velocity.angular.z = 0.0
+                        self.state = "Forward"
+                        self.initialization = False
             else:
                 if (self.state == "Forward"):
-                    dist_front = abs(sonar_front*sin(self.imu_yaw))
-                    # d = 0.2 - dist_front
-                    self.velocity.angular.z = 0
-                    self.velocity.linear.x = pid_vel.PID_calc(0.3, dist_front, dt)
-                    self.velocity.angular.z = -pid_rot.PID_calc(pi/2,current_angle_to_wall,dt)
-                    #self.velocity.angular.z = pid_rot.PID_calc(0.3, sonar_left, dt)
-                    # print(d)
-                    if (abs(self.velocity.linear.x) < 0.01 and abs(0.3-dist_front) < 0.01):
-                        if sonar_front_right < sonar_front:     # If you are in a corner
-                            self.state = "Cornering"
-                            yaw_target = self.imu_yaw-(corner_between_walls+pi/2)
-                        else:
-                            yaw_target = self.imu_yaw -(pi/2 - corner_between_walls)
-                            self.state = "Cornering"
-                # elif (self.state == "Turning_PID"):
-                #     self.velocity.angular.z = -pid_rot.PID_calc(pi/2,current_angle_to_wall,dt)
-                #     self.velocity.linear.x = 0
-                #     if (abs(self.velocity.angular.z < 0.01 and abs(pi/2 - current_angle_to_wall) < 0.05)):
-                #         self.state = "Forward" 
-                elif self.state == "Cornering":
-                    self.velocity.linear.x = 0
-                    self.velocity.angular.z = pid_rot.PID_calc(yaw_target, self.imu_yaw, dt)
-                    if (abs(self.velocity.angular.z < 0.01 and abs(yaw_target - self.imu_yaw) < 0.05)):
-                        self.state = "Forward"  
+                    self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt)   
+                    if (abs(self.velocity.linear.x) < 0.01 and abs(0.2-d) < 0.1):
+                        self.state = "Turning"
+
+                elif (self.state == "Turning"):
+                    self.velocity.angular.z = pid_rot.PID_calc(pi/2,current_angle_to_wall,dt)
+                    if (abs(self.velocity.angular.z < 0.01 and abs(pi/2 - current_angle_to_wall) < 0.05)):
+                        self.state = "Forward"                    # print("d: ", abs(sonar_front*sin(self.imu_yaw)))
+                    # print("velocity: ", self.velocity.linear.x)
 
             # Publish the new joint's angular positions
             self.velocity_pub.publish(self.velocity)
