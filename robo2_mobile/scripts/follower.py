@@ -132,8 +132,8 @@ class mymobibot_follower():
         tmp_rate = rospy.Rate(1)
         tmp_rate.sleep()
 
-        pid_vel = PID(0.5,0.0,0.1)
-        pid_rot = PID(0.7,0.0,0.1)
+        pid_vel = PID(1,0.0,0.1)
+        pid_rot = PID(10,0.0,0.0)
 
         print("The system is ready to execute your algorithm...")
 
@@ -158,6 +158,7 @@ class mymobibot_follower():
             # print("=====================")
             
             d = abs(sonar_front*sin(self.imu_yaw))
+            # d = min(sonar_front, sonar_front_right)
             side_A = sonar_front_left+sqrt(0.02)
             side_B = sonar_front+0.1
             side_C = sqrt(side_B**2+side_A**2-sqrt(2)*side_A*side_B)
@@ -174,7 +175,10 @@ class mymobibot_follower():
                 pass
             else:
                 if (self.state == "Forward"):
-                    self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt)
+                    self.velocity.linear.x = pid_vel.PID_calc(0.0,0.2-d,dt)
+                    if (sonar_left < 0.6):
+                        print(sonar_left - sonar_front_left*cos(pi/4))
+                        self.velocity.angular.z = -pid_rot.PID_calc(0.0, (sonar_left-sonar_front_left*cos(pi/4)), dt)
                     if (abs(self.velocity.linear.x) < 0.01 and abs(d - 0.2) < 0.01):
                         self.velocity.linear.x = 0.0
                         self.state = "Turning"
@@ -184,10 +188,14 @@ class mymobibot_follower():
                         else:                                   #_/
                             corner_between_walls = current_angle_to_wall_left + pi/4
                             yaw_target = self.imu_yaw - pi/2 - (pi/2-corner_between_walls)
+                        if (yaw_target > pi):
+                            yaw_target -= 2*pi
+                        if (yaw_target < -pi):
+                            yaw_target += 2*pi
                 elif (self.state == "Turning"):
                     print(np.degrees(yaw_target))
-                    self.velocity.angular.z = pid_rot.PID_calc(yaw_target, self.imu_yaw, dt)
-                    if (abs(yaw_target - self.imu_yaw) < 0.01):
+                    self.velocity.angular.z = pid_rot.PID_calc(0.0, (yaw_target-self.imu_yaw), dt)
+                    if (abs(self.velocity.linear.z) < 0.01 and abs(yaw_target - self.imu_yaw) < 0.01):
                         self.velocity.angular.z = 0.0
                         self.state = "Forward" 
                     
