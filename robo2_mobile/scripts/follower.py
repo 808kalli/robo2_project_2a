@@ -145,6 +145,8 @@ class mymobibot_follower():
             sonar_front = self.sonar_F.range
             sonar_front_left = self.sonar_FL.range
             sonar_left = self.sonar_L.range
+            sonar_front_right = self.sonar_FR.range
+            sonar_right = self.sonar_R.range
 
                 
             # Calculate time interval (in case is needed)
@@ -160,7 +162,8 @@ class mymobibot_follower():
             side_B = sonar_left+0.2
             side_C = sqrt(side_B**2+side_A**2-sqrt(2)*side_A*side_B)
             term = side_A*sin(pi/4)/side_C
-            current_angle_to_wall = asin(term)
+            current_angle_to_wall_left = asin(term)
+            corner_between_walls = asin(sonar_front_right*cos(pi/4)/(sqrt(sonar_front**2+sonar_front_right**2-sonar_front*sonar_front_right*sqrt(2))))
             # print(np.degrees(current_angle_to_wall))
 
             if (dt == 0.0):
@@ -174,17 +177,32 @@ class mymobibot_follower():
                         self.state = "Turning"
 
                 elif (self.state == "Turning"):
-                    self.velocity.angular.z = -pid_rot.PID_calc(pi/2,current_angle_to_wall,dt)
-                    if (abs(self.velocity.angular.z) < 0.001 and abs(pi/2 - current_angle_to_wall) < 0.001):
+                    self.velocity.angular.z = -pid_rot.PID_calc(pi/2,current_angle_to_wall_left,dt)
+                    if (abs(self.velocity.angular.z) < 0.001 and abs(pi/2 - current_angle_to_wall_left) < 0.001):
                         self.velocity.angular.z = 0.0
                         self.state = "Forward"
                         self.initialization = False
             else:
                 if (self.state == "Forward"):
-                    self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt) 
+                    self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt)
                     if (abs(self.velocity.linear.x) < 0.01 and abs(d - 0.2) < 0.01):
                         self.velocity.linear.x = 0.0
-                        print(d)
+                        self.state = "Turning"
+                        if sonar_front_right < sonar_front:     #/_
+                            yaw_target = -(pi/2 - self.imu_yaw - (corner_between_walls + pi/2))
+                        else:                                   #_/
+                            yaw_target = self.imu_yaw -(pi/2 - corner_between_walls)
+                elif (self.state == "Turning"):
+                    print(np.degrees(self.imu_yaw))
+                    self.velocity.angular.z = -pid_rot.PID_calc(yaw_target, self.imu_yaw, dt)
+                    if (abs(self.velocity.angular.z < 0.001 and abs(yaw_target - self.imu_yaw) < 0.001)):
+                        self.velocity.angular.z = 0.0
+                        self.state = "Forward" 
+                    
+                    # self.velocity.angular.z = -pid_rot.PID_calc(turn_angle,self.imu_yaw,dt)
+                    # if (abs(self.velocity.angular.z) < 0.001 and abs(pi/2 - current_angle_to_wall_left) < 0.001):
+                    #     self.velocity.angular.z = 0.0
+                    #     self.state = "Forward"
                     # print("d: ", abs(sonar_front*sin(self.imu_yaw)))
                     # print("velocity: ", self.velocity.linear.x)
 
