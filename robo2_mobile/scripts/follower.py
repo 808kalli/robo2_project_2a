@@ -133,7 +133,7 @@ class mymobibot_follower():
         tmp_rate.sleep()
 
         pid_vel = PID(0.5,0.0,0.1)
-        pid_rot = PID(0.8,0.0,0.1)
+        pid_rot = PID(0.7,0.0,0.1)
 
         print("The system is ready to execute your algorithm...")
 
@@ -156,32 +156,22 @@ class mymobibot_follower():
             dt = (time_now - time_prev)/1e9
             # print("Time interval: ", dt)
             # print("=====================")
-
+            
             d = abs(sonar_front*sin(self.imu_yaw))
-            side_A = sonar_front_left+sqrt(0.2**2+0.2**2)
-            side_B = sonar_left+0.2
+            side_A = sonar_front_left+sqrt(0.02)
+            side_B = sonar_front+0.1
             side_C = sqrt(side_B**2+side_A**2-sqrt(2)*side_A*side_B)
-            term = side_A*sin(pi/4)/side_C
+            term = side_B*sin(pi/4)/side_C
             current_angle_to_wall_left = asin(term)
-            corner_between_walls = asin(sonar_front_right*cos(pi/4)/(sqrt(sonar_front**2+sonar_front_right**2-sonar_front*sonar_front_right*sqrt(2))))
+            side_A = sonar_front_right+sqrt(0.02)
+            side_B = sonar_left+0.1
+            side_C = sqrt(side_B**2+side_A**2-sqrt(2)*side_A*side_B)
+            term = side_B*sin(pi/4)/side_C
+            current_angle_to_wall_right = asin(term)
             # print(np.degrees(current_angle_to_wall))
 
             if (dt == 0.0):
                 pass
-            elif (self.initialization == True):
-                # print(self.state)
-                if (self.state == "Forward"):
-                    self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt) 
-                    if (abs(self.velocity.linear.x) < 0.01 and abs(d - 0.2) < 0.01):
-                        self.velocity.linear.x = 0.0
-                        self.state = "Turning"
-
-                elif (self.state == "Turning"):
-                    self.velocity.angular.z = -pid_rot.PID_calc(pi/2,current_angle_to_wall_left,dt)
-                    if (abs(self.velocity.angular.z) < 0.001 and abs(pi/2 - current_angle_to_wall_left) < 0.001):
-                        self.velocity.angular.z = 0.0
-                        self.state = "Forward"
-                        self.initialization = False
             else:
                 if (self.state == "Forward"):
                     self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt)
@@ -189,13 +179,15 @@ class mymobibot_follower():
                         self.velocity.linear.x = 0.0
                         self.state = "Turning"
                         if sonar_front_right < sonar_front:     #/_
-                            yaw_target = -(pi/2 - self.imu_yaw - (corner_between_walls + pi/2))
+                            corner_between_walls = current_angle_to_wall_right
+                            yaw_target = self.imu_yaw - pi/2 - (pi/2-corner_between_walls)
                         else:                                   #_/
-                            yaw_target = self.imu_yaw -(pi/2 - corner_between_walls)
+                            corner_between_walls = current_angle_to_wall_left + pi/4
+                            yaw_target = self.imu_yaw - pi/2 - (pi/2-corner_between_walls)
                 elif (self.state == "Turning"):
-                    print(np.degrees(self.imu_yaw))
-                    self.velocity.angular.z = -pid_rot.PID_calc(yaw_target, self.imu_yaw, dt)
-                    if (abs(self.velocity.angular.z < 0.001 and abs(yaw_target - self.imu_yaw) < 0.001)):
+                    print(np.degrees(yaw_target))
+                    self.velocity.angular.z = pid_rot.PID_calc(yaw_target, self.imu_yaw, dt)
+                    if (abs(yaw_target - self.imu_yaw) < 0.01):
                         self.velocity.angular.z = 0.0
                         self.state = "Forward" 
                     
