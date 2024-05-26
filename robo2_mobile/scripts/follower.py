@@ -158,19 +158,14 @@ class mymobibot_follower():
             sonar_front_left = self.sonar_FL.range
             sonar_left = self.sonar_L.range
             sonar_front_right = self.sonar_FR.range
-            sonar_right = self.sonar_R.range
-
-            #self.imu_callback(self.imu)
                 
             # Calculate time interval (in case is needed)
             time_prev = time_now
             rostime_now = rospy.get_rostime()
             time_now = rostime_now.to_nsec()
             dt = (time_now - time_prev)/1e9
-            # print("Time interval: ", dt)
-            # print("=====================")
-            
-            # d = abs(sonar_front*sin(self.imu_yaw))
+
+
             side_A = sonar_front_left+sqrt(0.02)
             side_B = sonar_front+0.1
             side_C = sqrt(side_B**2+side_A**2-sqrt(2)*side_A*side_B)
@@ -186,12 +181,10 @@ class mymobibot_follower():
                 d = sonar_front*sin(current_angle_to_wall_left)
             else:
                 d = sonar_front*sin(current_angle_to_wall_right)
-            # print(np.degrees(current_angle_to_wall))
 
             if (dt == 0.0):
                 pass
             else:
-                # print(np.degrees(self.imu_yaw))
                 if (self.state == "Forward"):
                     self.velocity.linear.x = pid_vel.PID_calc(0.0,0.4-d,dt)
                     if (self.turn_executed == True):
@@ -213,13 +206,6 @@ class mymobibot_follower():
                         self.turn_executed = True
                         self.velocity.angular.z = 0.0
                         self.state = "Forward" 
-                    
-                    # self.velocity.angular.z = -pid_rot.PID_calc(turn_angle,self.imu_yaw,dt)
-                    # if (abs(self.velocity.angular.z) < 0.001 and abs(pi/2 - current_angle_to_wall_left) < 0.001):
-                    #     self.velocity.angular.z = 0.0
-                    #     self.state = "Forward"
-                    # print("d: ", abs(sonar_front*sin(self.imu_yaw)))
-                    # print("velocity: ", self.velocity.linear.x)
 
             # Publish the new joint's angular positions
             self.v_x.publish(self.velocity.linear.x)
