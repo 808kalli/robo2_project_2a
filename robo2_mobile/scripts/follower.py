@@ -207,7 +207,6 @@ class mymobibot_follower():
                             corner_between_walls = current_angle_to_wall_left + pi/4
                             yaw_target = self.imu_yaw - pi/2 - (pi/2-corner_between_walls)
                         yaw_target = normalize_angle(yaw_target)
-                        print(np.degrees(yaw_target))
                 elif (self.state == "Turning"):
                     self.velocity.angular.z = pid_rot.PID_calc(0.0, normalize_angle(yaw_target-self.imu_yaw), dt)
                     if (abs(self.velocity.linear.z) < 0.01 and abs(yaw_target - self.imu_yaw) < 0.001):
