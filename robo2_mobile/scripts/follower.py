@@ -78,6 +78,11 @@ class mymobibot_follower():
         self.period = 1.0/rate
         self.pub_rate = rospy.Rate(rate)
 
+        self.v_x = rospy.Publisher("/velocity_Linear_x", Float64, queue_size=100)
+        self.v_y = rospy.Publisher("/velocity_Linear_y", Float64, queue_size=100)
+        self.omega_z = rospy.Publisher("/velocity_Angular_z", Float64, queue_size=100)
+        self.yaw_angle = rospy.Publisher("/yaw", Float64, queue_size=100)
+
         self.publish()
 
     #SENSING CALLBACKS
@@ -139,13 +144,8 @@ class mymobibot_follower():
         tmp_rate = rospy.Rate(1)
         tmp_rate.sleep()
 
-<<<<<<< HEAD
-        pid_vel = PID(2,0.0,0.0)
-        pid_rot = PID(1,0,0)
-=======
         pid_vel = PID(0.5,0.0,0.1)
         pid_rot = PID(8,0.0,0.0)
->>>>>>> 0a135f815aae64deb3d0c13c4af52e6015206466
 
         print("The system is ready to execute your algorithm...")
 
@@ -169,11 +169,6 @@ class mymobibot_follower():
             dt = (time_now - time_prev)/1e9
             # print("Time interval: ", dt)
             # print("=====================")
-<<<<<<< HEAD
-
-            d = abs(sonar_front*sin(self.imu_yaw))
-            current_angle_to_wall = asin(sonar_front_left*cos(pi/4)*sqrt(sonar_left**2+sonar_front_left**2-sqrt(2)*sonar_left*sonar_front_left))
-=======
             
             # d = abs(sonar_front*sin(self.imu_yaw))
             side_A = sonar_front_left+sqrt(0.02)
@@ -192,23 +187,12 @@ class mymobibot_follower():
             else:
                 d = sonar_front*sin(current_angle_to_wall_right)
             # print(np.degrees(current_angle_to_wall))
->>>>>>> 0a135f815aae64deb3d0c13c4af52e6015206466
 
             if (dt == 0.0):
                 pass
             else:
                 # print(np.degrees(self.imu_yaw))
                 if (self.state == "Forward"):
-<<<<<<< HEAD
-                    self.velocity.linear.x = pid_vel.PID_calc(0.2,d,dt)   
-                    if (abs(self.velocity.linear.x) < 0.01 and abs(0.2-d) < 0.1):
-                        self.state = "Turning"
-
-                elif (self.state == "Turning"):
-                    self.velocity.angular.z = pid_rot.PID_calc(pi/2,current_angle_to_wall,dt)
-                    if (abs(self.velocity.angular.z < 0.01 and abs(pi/2 - current_angle_to_wall) < 0.05)):
-                        self.state = "Forward"                    # print("d: ", abs(sonar_front*sin(self.imu_yaw)))
-=======
                     self.velocity.linear.x = pid_vel.PID_calc(0.0,0.4-d,dt)
                     if (self.turn_executed == True):
                         self.velocity.angular.z = -pid_rot.PID_calc(0.0, (sonar_left-sonar_front_left*cos(pi/4)), dt)                            
@@ -236,10 +220,14 @@ class mymobibot_follower():
                     #     self.velocity.angular.z = 0.0
                     #     self.state = "Forward"
                     # print("d: ", abs(sonar_front*sin(self.imu_yaw)))
->>>>>>> 0a135f815aae64deb3d0c13c4af52e6015206466
                     # print("velocity: ", self.velocity.linear.x)
 
             # Publish the new joint's angular positions
+            self.v_x.publish(self.velocity.linear.x)
+            self.v_y.publish(self.velocity.linear.y)
+            self.omega_z.publish(self.velocity.angular.z)
+            self.yaw_angle.publish(self.imu_yaw)
+
             self.velocity_pub.publish(self.velocity)
 
             self.pub_rate.sleep()
